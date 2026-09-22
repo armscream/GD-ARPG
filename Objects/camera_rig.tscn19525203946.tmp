@@ -1,0 +1,50 @@
+[gd_scene format=3 uid="uid://dnnwye14863wr"]
+
+[ext_resource type="Script" uid="uid://dk73d4ejso1ik" path="res://Scripts/party/camera_rig.gd" id="1_husdd"]
+[ext_resource type="Shader" uid="uid://d2a31kw7v24tw" path="res://Assets/RPG_assets-main/RPG_assets-main/assets/shaders/forground_shader3.gdshader" id="2_edgi7"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_n5arn"]
+shader = ExtResource("2_edgi7")
+shader_parameter/MULTIPLIER = 0.93
+shader_parameter/SCALE = 0.52
+shader_parameter/SOFTNESS = 0.8
+shader_parameter/BASE_OPACITY = 1.0
+shader_parameter/TARGET_OPACITY = 0.8
+shader_parameter/BLEND = 0.0
+
+[node name="CameraRig" type="Node3D" unique_id=246006812]
+script = ExtResource("1_husdd")
+
+[node name="base_camera" type="Camera3D" parent="." unique_id=1188353693]
+cull_mask = 1047552
+
+[node name="background_viewport_container" type="SubViewportContainer" parent="base_camera" unique_id=1000701856]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="background_viewport" type="SubViewport" parent="base_camera/background_viewport_container" unique_id=1725524532]
+transparent_bg = true
+handle_input_locally = false
+render_target_update_mode = 4
+
+[node name="background_camera" type="Camera3D" parent="base_camera/background_viewport_container/background_viewport" unique_id=1765746958]
+cull_mask = 1047553
+
+[node name="foreground_viewport_container" type="SubViewportContainer" parent="base_camera" unique_id=1345487755]
+material = SubResource("ShaderMaterial_n5arn")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="foreground_viewport" type="SubViewport" parent="base_camera/foreground_viewport_container" unique_id=1572458144]
+transparent_bg = true
+handle_input_locally = false
+render_target_update_mode = 4
+
+[node name="foreground_camera" type="Camera3D" parent="base_camera/foreground_viewport_container/foreground_viewport" unique_id=1612181748]
+cull_mask = 1047554
