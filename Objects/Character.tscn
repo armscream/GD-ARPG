@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://dt5oghfdwdnog"]
+
+[ext_resource type="Script" uid="uid://rgj3p28yfavr" path="res://Scripts/party/controller.gd" id="1_sbav2"]
+[ext_resource type="Script" uid="uid://8l4tdxrgojw2" path="res://Objects/char_visuals.gd" id="3_k2lum"]
+[ext_resource type="PackedScene" uid="uid://c3t8sea8ggde7" path="res://Objects/HumanoidModel.tscn" id="4_766v2"]
+[ext_resource type="Script" uid="uid://t8nr0mnpmdr6" path="res://Scripts/Character/Input.gd" id="7_slvmq"]
+[ext_resource type="PackedScene" uid="uid://cwr3dse3o5ncw" path="res://Objects/CharVisuals.tscn" id="8_k7n5l"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_v0iea"]
+radius = 0.4
+height = 1.8
+
+[node name="Character" type="CharacterBody3D" unique_id=1063156902]
+script = ExtResource("1_sbav2")
+
+[node name="Visuals" parent="." unique_id=1636335998 instance=ExtResource("8_k7n5l")]
+script = ExtResource("3_k2lum")
+
+[node name="Collider" type="CollisionShape3D" parent="." unique_id=1875939588]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.89152133, 0)
+shape = SubResource("CapsuleShape3D_v0iea")
+
+[node name="Model" parent="." unique_id=1008685351 instance=ExtResource("4_766v2")]
+
+[node name="Input" type="Node" parent="." unique_id=1248602959]
+script = ExtResource("7_slvmq")
+
+[node name="camera_point" type="Node3D" parent="." unique_id=528649544]
+transform = Transform3D(1, 0, 0, 0, 0.6817558, 0.7315799, 0, -0.7315799, 0.6817558, 0, 4.7721796, 4.3645954)
+
+[node name="look_target" type="Node3D" parent="." unique_id=324009358]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5588734, 1.2727797)

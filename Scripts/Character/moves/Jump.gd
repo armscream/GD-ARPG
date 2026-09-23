@@ -1,6 +1,8 @@
 extends Move
 class_name Jump
 
+func _ready():
+	animation = "Humanoid/Jump"
 
 func check_relevance(input) -> String:
 	if player.is_on_floor():
@@ -9,9 +11,8 @@ func check_relevance(input) -> String:
 	return "okay"
 
 
-func update(input, delta):
+func update(_input, delta):
 	player.velocity.y -= gravity * delta
-	player.move_and_slide()
 	
 func on_enter_state():
 	player.velocity.y += JUMP_VELOCITY

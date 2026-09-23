@@ -1,10 +1,10 @@
+#GameManager.gd
 extends Node
 
 # ============================================================
 # PARTY MEMBER
 # ============================================================
 class PartyMember:
-
 	var character: Node = null
 	var character_id: int = -1
 	var party_slot: int = -1
@@ -21,7 +21,6 @@ class PartyMember:
 		id: int,
 		slot: int
 	) -> void:
-
 		character = character_node
 		character_id = id
 		party_slot = slot
@@ -38,7 +37,6 @@ class PartyMember:
 # PARTY PLAYER
 # ============================================================
 class PartyPlayer:
-
 	var peer_id: int = -1
 
 	# The character this human currently controls.
@@ -52,7 +50,6 @@ class PartyPlayer:
 # PARTY
 # ============================================================
 class Party:
-
 	var party_id: int = -1
 
 	var players: Array[PartyPlayer] = []
@@ -78,7 +75,6 @@ var local_party: Party = null
 # ============================================================
 
 func _ready() -> void:
-
 	if multiplayer.has_multiplayer_peer():
 		local_peer_id = multiplayer.get_unique_id()
 	else:
@@ -99,7 +95,6 @@ func set_camera(camera_node: Camera3D) -> void:
 # ============================================================
 
 func create_party() -> Party:
-
 	var party := Party.new()
 
 	party.party_id = parties.size()
@@ -110,7 +105,6 @@ func create_party() -> Party:
 
 
 func get_or_create_local_party() -> Party:
-
 	if local_party != null:
 		return local_party
 
@@ -125,9 +119,7 @@ func get_or_create_local_party() -> Party:
 
 
 func get_party(party_id: int) -> Party:
-
 	for party in parties:
-
 		if party.party_id == party_id:
 			return party
 
@@ -142,7 +134,6 @@ func add_player_to_party(
 	party: Party,
 	peer_id: int
 ) -> PartyPlayer:
-
 	if party == null:
 		return null
 
@@ -167,7 +158,6 @@ func remove_player_from_party(
 	party: Party,
 	peer_id: int
 ) -> void:
-
 	if party == null:
 		return
 
@@ -182,7 +172,6 @@ func remove_player_from_party(
 
 
 	if player.controlled_char != null:
-
 		player.controlled_char.controller_peer_id = 0
 
 		_notify_character_control_changed(
@@ -199,13 +188,11 @@ func get_player_from_party(
 	party: Party,
 	peer_id: int
 ) -> PartyPlayer:
-
 	if party == null:
 		return null
 
 
 	for player in party.players:
-
 		if player.peer_id == peer_id:
 			return player
 
@@ -221,7 +208,6 @@ func add_character_to_party(
 	party: Party,
 	character: Node
 ) -> PartyMember:
-
 	if party == null:
 		return null
 
@@ -282,7 +268,6 @@ func add_character_to_party(
 func register_initial_player(
 	character: Node
 ) -> PartyMember:
-
 	var party := get_or_create_local_party()
 
 	var member := get_party_member(
@@ -291,12 +276,10 @@ func register_initial_player(
 	)
 
 	if member == null:
-
 		# Make absolutely sure the player is first.
 		#
 		# If there are already characters registered,
 		# insert the player at index 0 and repair slots.
-
 		member = PartyMember.new(
 			character,
 			next_character_id,
@@ -316,7 +299,6 @@ func register_initial_player(
 	)
 
 	if player == null:
-
 		player = add_player_to_party(
 			party,
 			local_peer_id
@@ -327,10 +309,8 @@ func register_initial_player(
 	# to the local player.
 
 	if member.controller_peer_id == 0:
-
 		# Release whatever the local player currently controls.
 		if player.controlled_char != null:
-
 			player.controlled_char.controller_peer_id = 0
 
 			_notify_character_control_changed(
@@ -357,7 +337,6 @@ func register_initial_player(
 func register_ai_character(
 	character: Node
 ) -> PartyMember:
-
 	var party := get_or_create_local_party()
 
 	var member := add_character_to_party(
@@ -376,9 +355,7 @@ func register_ai_character(
 # ============================================================
 
 func _rebuild_party_slots(party: Party) -> void:
-
 	for i in party.party_members.size():
-
 		party.party_members[i].party_slot = i
 
 
@@ -390,7 +367,6 @@ func remove_character_from_party(
 	party: Party,
 	character: Node
 ) -> void:
-
 	if party == null:
 		return
 
@@ -405,14 +381,12 @@ func remove_character_from_party(
 
 
 	if member.controller_peer_id != 0:
-
 		var player := get_player_from_party(
 			party,
 			member.controller_peer_id
 		)
 
 		if player != null:
-
 			if player.controlled_char == member:
 				player.controlled_char = null
 
@@ -430,13 +404,11 @@ func get_party_member(
 	party: Party,
 	character: Node
 ) -> PartyMember:
-
 	if party == null:
 		return null
 
 
 	for member in party.party_members:
-
 		if member.character == character:
 			return member
 
@@ -448,13 +420,11 @@ func get_party_member_by_id(
 	party: Party,
 	character_id: int
 ) -> PartyMember:
-
 	if party == null:
 		return null
 
 
 	for member in party.party_members:
-
 		if member.character_id == character_id:
 			return member
 
@@ -471,7 +441,6 @@ func take_control(
 	player: PartyPlayer,
 	target: PartyMember
 ) -> bool:
-
 	if party == null:
 		return false
 
@@ -488,7 +457,6 @@ func take_control(
 
 	# Someone else currently controls this character.
 	if target.controller_peer_id != 0:
-
 		if target.controller_peer_id == player.peer_id:
 			return true
 
@@ -497,7 +465,6 @@ func take_control(
 
 	# Release player's current character.
 	if player.controlled_char != null:
-
 		var old_character := player.controlled_char
 
 		old_character.controller_peer_id = 0
@@ -531,7 +498,6 @@ func release_control(
 	party: Party,
 	player: PartyPlayer
 ) -> bool:
-
 	if party == null:
 		return false
 
@@ -566,7 +532,6 @@ func get_controlled_character(
 	party: Party,
 	peer_id: int
 ) -> PartyMember:
-
 	var player := get_player_from_party(
 		party,
 		peer_id
@@ -582,7 +547,6 @@ func get_controlled_character(
 func get_local_controlled_character(
 	party: Party
 ) -> PartyMember:
-
 	return get_controlled_character(
 		party,
 		local_peer_id
@@ -597,7 +561,6 @@ func is_character_controlled_by(
 	member: PartyMember,
 	peer_id: int
 ) -> bool:
-
 	if member == null:
 		return false
 
@@ -608,7 +571,6 @@ func is_character_controlled_by(
 func is_character_ai_controlled(
 	member: PartyMember
 ) -> bool:
-
 	if member == null:
 		return false
 
@@ -623,7 +585,6 @@ func is_character_ai_controlled(
 func _notify_character_control_changed(
 	member: PartyMember
 ) -> void:
-
 	if member == null:
 		return
 
@@ -634,7 +595,6 @@ func _notify_character_control_changed(
 	if member.character.has_method(
 		"set_controller_peer"
 	):
-
 		member.character.set_controller_peer(
 			member.controller_peer_id
 	)

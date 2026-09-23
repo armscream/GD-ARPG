@@ -2,7 +2,7 @@
 
 [ext_resource type="Material" uid="uid://bs2wgalxu3ynm" path="res://Materials/floor.tres" id="1_go701"]
 [ext_resource type="Material" uid="uid://c3qst3fgubxfv" path="res://Materials/wall.tres" id="2_5a7ea"]
-[ext_resource type="PackedScene" uid="uid://dt5oghfdwdnog" path="res://Objects/player.tscn" id="3_5a7ea"]
+[ext_resource type="PackedScene" uid="uid://dt5oghfdwdnog" path="res://Objects/Character.tscn" id="3_5a7ea"]
 [ext_resource type="Script" uid="uid://b2k1pq8fryo5e" path="res://Scripts/world/autohider.gd" id="3_fo5ed"]
 [ext_resource type="PackedScene" uid="uid://dnnwye14863wr" path="res://Objects/camera_rig.tscn" id="5_5ukr8"]
 
@@ -80,16 +80,16 @@ use_collision = true
 size = Vector3(1, 3, 10)
 script = ExtResource("3_fo5ed")
 
-[node name="Player" parent="." unique_id=1063156902 instance=ExtResource("3_5a7ea")]
-transform = Transform3D(0.70716846, 0, 0.7070451, 0, 1, 0, -0.7070451, 0, 0.70716846, 0, 0.5275565, 0)
-start_as_player = true
-
-[node name="character1" parent="." unique_id=1300983082 instance=ExtResource("3_5a7ea")]
-transform = Transform3D(0.70716846, 0, 0.7070451, 0, 1, 0, -0.7070451, 0, 0.70716846, -4.0644536, 3.4617796, -1.4201982)
-
 [node name="OmniLight3D" type="OmniLight3D" parent="." unique_id=936737223]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
 layers = 3
 omni_range = 9.508879
 
 [node name="CameraRig" parent="." unique_id=246006812 instance=ExtResource("5_5ukr8")]
+
+[node name="Character" parent="." unique_id=1063156902 instance=ExtResource("3_5a7ea")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.347955, 3.5197253, -3.8769164)
+
+[node name="Player" parent="." unique_id=235112343 instance=ExtResource("3_5a7ea")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.48297977, 0)
+start_as_player = true

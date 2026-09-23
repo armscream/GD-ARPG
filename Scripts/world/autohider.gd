@@ -1,10 +1,8 @@
+# Autohider.gd
 extends CSGBox3D
 
-
 var layer: int = 1
-
-@export var trigger_margin: float = 0.05
-@export var camera_corner_distance: float = 0.1
+var _is_occluding: bool = false
 
 
 func _process(_delta: float) -> void:
@@ -29,13 +27,39 @@ func _process(_delta: float) -> void:
 	var player_pos: Vector3 = \
 		player.global_position
 
-	if box_intersects_camera_pyramid(
+	if box_occludes_line_of_sight_to_player(
 		player_pos,
 		camera
 	):
 		set_to_foreground()
+
+		if not _is_occluding:
+			_is_occluding = true
+			camera_rig.add_foreground_occluder()
 	else:
 		set_to_background()
+
+		if _is_occluding:
+			_is_occluding = false
+			camera_rig.remove_foreground_occluder()
+
+
+func _exit_tree() -> void:
+	if not _is_occluding:
+		return
+
+	_is_occluding = false
+
+	var tree := get_tree()
+	if tree == null:
+		return
+
+	var camera_rig := tree.get_first_node_in_group("camera_rig")
+	if camera_rig == null:
+		return
+
+	if is_instance_valid(camera_rig):
+		camera_rig.remove_foreground_occluder()
 
 
 func set_to_foreground() -> void:
@@ -58,354 +82,52 @@ func set_to_background() -> void:
 	set_layer_mask_value(2, false)
 
 
-func box_intersects_camera_pyramid(
+func box_occludes_line_of_sight_to_player(
 	player_pos: Vector3,
 	camera: Camera3D
 ) -> bool:
+	var camera_pos: Vector3 = camera.global_position
+	var world_to_local: Transform3D = global_transform.affine_inverse()
 
-	var viewport_size: Vector2 = camera.get_viewport().get_visible_rect().size
+	var local_camera: Vector3 = world_to_local * camera_pos
+	var local_player: Vector3 = world_to_local * player_pos
+	var local_dir: Vector3 = local_player - local_camera
 
-	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
+	var local_ray_length: float = local_dir.length()
+
+	if local_ray_length < 0.001:
 		return false
 
 
-	# ---------------------------------------------------------
-	# CAMERA
-	# ---------------------------------------------------------
+	var local_unit_dir: Vector3 = local_dir / local_ray_length
 
-	var camera_pos: Vector3 = camera.global_position
-
-	var camera_forward: Vector3 = (
-		-camera.global_transform.basis.z.normalized()
-	)
+	var box: AABB = get_aabb()
+	var box_min: Vector3 = box.position
+	var box_max: Vector3 = box.position + box.size
 
 
-	# ---------------------------------------------------------
-	# GET THE FOUR CORNERS OF THE CAMERA VIEW
-	# ---------------------------------------------------------
-
-	var screen_corners: Array[Vector2] = [
-		Vector2(0.0, 0.0),
-		Vector2(viewport_size.x, 0.0),
-		Vector2(viewport_size.x, viewport_size.y),
-		Vector2(0.0, viewport_size.y)
-	]
+	var t_min: float = 0.0
+	var t_max: float = local_ray_length
 
 
-	# Put the camera corners slightly in front of the camera.
-	var corner_plane_pos: Vector3 = (
-		camera_pos
-		+ camera_forward * camera_corner_distance
-	)
+	for i in range(3):
+		var rd: float = local_unit_dir[i]
+		var ro: float = local_camera[i]
 
-	var corner_plane := Plane(
-		camera_forward,
-		-camera_forward.dot(corner_plane_pos)
-	)
+		if abs(rd) < 0.000001:
+			if ro < box_min[i] or ro > box_max[i]:
+				return false
+		else:
+			var inv_d: float = 1.0 / rd
+			var t1: float = (box_min[i] - ro) * inv_d
+			var t2: float = (box_max[i] - ro) * inv_d
+			var t_near: float = min(t1, t2)
+			var t_far: float = max(t1, t2)
+			t_min = max(t_min, t_near)
+			t_max = min(t_max, t_far)
 
-
-	var camera_corners: Array[Vector3] = []
-
-
-	for screen_corner in screen_corners:
-
-		var ray_origin: Vector3 = (
-			camera.project_ray_origin(screen_corner)
-		)
-
-		var ray_direction: Vector3 = (
-			camera.project_ray_normal(screen_corner).normalized()
-		)
-
-
-		var denominator: float = (
-			corner_plane.normal.dot(ray_direction)
-		)
-
-
-		if abs(denominator) < 0.00001:
-			return false
-
-
-		var t: float = -(
-			corner_plane.normal.dot(ray_origin)
-			+ corner_plane.d
-		) / denominator
-
-
-		if t < 0.0:
-			return false
-
-
-		camera_corners.append(
-			ray_origin + ray_direction * t
-		)
-
-
-	# ---------------------------------------------------------
-	# BUILD THE CAMERA PYRAMID
-	# ---------------------------------------------------------
-
-	var pyramid: Array[Vector3] = [
-		player_pos,
-		camera_corners[0],
-		camera_corners[1],
-		camera_corners[2],
-		camera_corners[3]
-	]
-
-
-	# ---------------------------------------------------------
-	# PYRAMID EDGES
-	# ---------------------------------------------------------
-
-	var pyramid_edges: Array[Vector3] = [
-
-		# Four edges from player to camera corners.
-		pyramid[1] - pyramid[0],
-		pyramid[2] - pyramid[0],
-		pyramid[3] - pyramid[0],
-		pyramid[4] - pyramid[0],
-
-		# Four edges around camera rectangle.
-		pyramid[2] - pyramid[1],
-		pyramid[3] - pyramid[2],
-		pyramid[4] - pyramid[3],
-		pyramid[1] - pyramid[4]
-	]
-
-
-	# ---------------------------------------------------------
-	# GET THE CSG BOX AS AN OBB
-	# ---------------------------------------------------------
-
-	var local_box: AABB = get_aabb()
-
-	var local_center: Vector3 = (
-		local_box.get_center()
-	)
-
-	var local_half_size: Vector3 = (
-		local_box.size * 0.5
-	)
-
-
-	# Transform local center into world space.
-	var box_center: Vector3 = (
-		global_transform * local_center
-	)
-
-
-	var box_basis: Basis = global_transform.basis
-
-
-	# Three local axes of the CSG box.
-	var box_axes: Array[Vector3] = [
-		box_basis.x.normalized(),
-		box_basis.y.normalized(),
-		box_basis.z.normalized()
-	]
-
-
-	# Account for scaling.
-	var box_half_extents: Vector3 = Vector3(
-		local_half_size.x * box_basis.x.length(),
-		local_half_size.y * box_basis.y.length(),
-		local_half_size.z * box_basis.z.length()
-	)
-
-
-	# ---------------------------------------------------------
-	# PYRAMID FACES
-	# ---------------------------------------------------------
-
-	var face_indices: Array = [
-
-		# Four triangular side faces.
-		[0, 1, 2],
-		[0, 2, 3],
-		[0, 3, 4],
-		[0, 4, 1],
-
-		# Camera rectangle.
-		[1, 4, 3],
-		[1, 3, 2]
-	]
-
-
-	# ---------------------------------------------------------
-	# SAT TEST
-	#
-	# Test normals of every pyramid face.
-	# ---------------------------------------------------------
-
-	for face in face_indices:
-
-		var a: Vector3 = pyramid[face[0]]
-		var b: Vector3 = pyramid[face[1]]
-		var c: Vector3 = pyramid[face[2]]
-
-
-		var axis: Vector3 = (
-			(b - a).cross(c - a)
-		)
-
-
-		if axis.length_squared() > 0.000001:
-
-			if obb_separates_from_pyramid(
-				box_center,
-				box_axes,
-				box_half_extents,
-				pyramid,
-				axis
-			):
+			if t_min > t_max:
 				return false
 
 
-	# ---------------------------------------------------------
-	# TEST THREE AXES OF THE BOX
-	# ---------------------------------------------------------
-
-	for axis in box_axes:
-
-		if obb_separates_from_pyramid(
-			box_center,
-			box_axes,
-			box_half_extents,
-			pyramid,
-			axis
-		):
-			return false
-
-
-	# ---------------------------------------------------------
-	# TEST CROSS PRODUCTS
-	#
-	# Pyramid edges × box edges.
-	# ---------------------------------------------------------
-
-	for edge in pyramid_edges:
-
-		for box_axis in box_axes:
-
-			var axis: Vector3 = (
-				edge.cross(box_axis)
-			)
-
-
-			if axis.length_squared() < 0.000001:
-				continue
-
-
-			if obb_separates_from_pyramid(
-				box_center,
-				box_axes,
-				box_half_extents,
-				pyramid,
-				axis
-			):
-				return false
-
-
-	# ---------------------------------------------------------
-	# NO SEPARATING AXIS
-	#
-	# The CSG box intersects the camera pyramid.
-	# ---------------------------------------------------------
-
-	return true
-
-
-func obb_separates_from_pyramid(
-	box_center: Vector3,
-	box_axes: Array[Vector3],
-	box_half_extents: Vector3,
-	pyramid: Array[Vector3],
-	axis: Vector3
-) -> bool:
-
-	var normalized_axis: Vector3 = (
-		axis.normalized()
-	)
-
-
-	# ---------------------------------------------------------
-	# PROJECT PYRAMID
-	# ---------------------------------------------------------
-
-	var pyramid_min: float = INF
-	var pyramid_max: float = -INF
-
-
-	for point in pyramid:
-
-		var projection: float = (
-			point.dot(normalized_axis)
-		)
-
-		pyramid_min = minf(
-			pyramid_min,
-			projection
-		)
-
-		pyramid_max = maxf(
-			pyramid_max,
-			projection
-		)
-
-
-	# ---------------------------------------------------------
-	# PROJECT OBB
-	# ---------------------------------------------------------
-
-	var box_center_projection: float = (
-		box_center.dot(normalized_axis)
-	)
-
-
-	var box_radius: float = (
-		abs(
-			box_axes[0].dot(normalized_axis)
-		) * box_half_extents.x
-
-		+ abs(
-			box_axes[1].dot(normalized_axis)
-		) * box_half_extents.y
-
-		+ abs(
-			box_axes[2].dot(normalized_axis)
-		) * box_half_extents.z
-	)
-
-
-	var box_min: float = (
-		box_center_projection
-		- box_radius
-	)
-
-	var box_max: float = (
-		box_center_projection
-		+ box_radius
-	)
-
-
-	# ---------------------------------------------------------
-	# MARGIN
-	# ---------------------------------------------------------
-
-	pyramid_min -= trigger_margin
-	pyramid_max += trigger_margin
-
-
-	# ---------------------------------------------------------
-	# SEPARATING AXIS
-	# ---------------------------------------------------------
-
-	if box_max < pyramid_min:
-		return true
-
-	if box_min > pyramid_max:
-		return true
-
-	return false
+	return t_max >= 0.0 and t_min <= local_ray_length

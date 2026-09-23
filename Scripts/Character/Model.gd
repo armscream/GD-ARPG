@@ -2,6 +2,9 @@ extends Node
 class_name PlayerModel
 
 @onready var player = $".."
+@onready var skeleton: Skeleton3D = $Skeleton
+@onready var animator: AnimationPlayer = $AnimationPlayer
+
 
 var current_move: Move
 
@@ -27,3 +30,4 @@ func switch_to(state : String):
 	current_move.on_exit_state()
 	current_move = moves[state]
 	current_move.on_enter_state()
+	animator.play(current_move.animation)
